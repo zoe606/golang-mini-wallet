@@ -88,13 +88,24 @@ func (w *WalletRepositoryImpl) Get(ctx context.Context, tx *sql.Tx, wallet domai
 
 }
 
-func (w *WalletRepositoryImpl) Deposit(ctx context.Context, tx *sql.Tx, data web.DepositRequest) domain.Wallet {
+func (w *WalletRepositoryImpl) Deposit(ctx context.Context, tx *sql.Tx, data web.DepositRequest) (domain.Wallet, error) {
 	loc, _ := time.LoadLocation("Asia/Jakarta")
 	now := time.Now().In(loc)
-	query := "INSERT INTO wallet_t(wallet_id, amount, reference_id, type, created_at, created_by) values (?,?,?,?,?,?)"
-	rows, err := tx.QueryContext(ctx, query, data.Wallet.Id, data.Amount, data.ReferenceId, "deposit", now.Format("2006-01-02 03:04:05"), data.Wallet.CustomerId)
+
+	query := "SELECT COUNT(id) FROM wallet_t where reference_id = ? "
+	rows, err := tx.QueryContext(ctx, query, data.ReferenceId)
 	helpers.PanicIfError(err)
 	defer rows.Close()
+
+	if rows.Next() {
+		accountWallet := domain.Wallet{}
+		return accountWallet, errors.New("Reference id must unique!")
+	} else {
+		query := "INSERT INTO wallet_t(wallet_id, amount, reference_id, type, created_at, created_by) values (?,?,?,?,?,?)"
+		rows, err := tx.QueryContext(ctx, query, data.Wallet.Id, data.Amount, data.ReferenceId, "deposit", now.Format("2006-01-02 03:04:05"), data.Wallet.CustomerId)
+		helpers.PanicIfError(err)
+		rows.Close()
+	}
 
 	accountWallet := domain.Wallet{
 		Id:          data.Wallet.Id,
@@ -124,16 +135,27 @@ func (w *WalletRepositoryImpl) Deposit(ctx context.Context, tx *sql.Tx, data web
 		//helpers.CommitOrRollback(tx)
 	}()
 
-	return accountWallet
+	return accountWallet, nil
 }
 
-func (w *WalletRepositoryImpl) Withdrawal(ctx context.Context, tx *sql.Tx, data web.WithdrawalRequest) domain.Wallet {
+func (w *WalletRepositoryImpl) Withdrawal(ctx context.Context, tx *sql.Tx, data web.WithdrawalRequest) (domain.Wallet, error) {
 	loc, _ := time.LoadLocation("Asia/Jakarta")
 	now := time.Now().In(loc)
-	query := "INSERT INTO wallet_t(wallet_id, amount, reference_id, type, created_at, created_by) values (?,?,?,?,?,?)"
-	rows, err := tx.QueryContext(ctx, query, data.Wallet.Id, data.Amount, data.ReferenceId, "withdrawal", now.Format("2006-01-02 03:04:05"), data.Wallet.CustomerId)
+
+	query := "SELECT COUNT(id) FROM wallet_t where reference_id = ? "
+	rows, err := tx.QueryContext(ctx, query, data.ReferenceId)
 	helpers.PanicIfError(err)
 	defer rows.Close()
+
+	if rows.Next() {
+		accountWallet := domain.Wallet{}
+		return accountWallet, errors.New("Reference id must unique!")
+	} else {
+		query := "INSERT INTO wallet_t(wallet_id, amount, reference_id, type, created_at, created_by) values (?,?,?,?,?,?)"
+		rows, err := tx.QueryContext(ctx, query, data.Wallet.Id, data.Amount, data.ReferenceId, "withdrawal", now.Format("2006-01-02 03:04:05"), data.Wallet.CustomerId)
+		helpers.PanicIfError(err)
+		defer rows.Close()
+	}
 
 	accountWallet := domain.Wallet{
 		Id:          data.Wallet.Id,
@@ -156,7 +178,7 @@ func (w *WalletRepositoryImpl) Withdrawal(ctx context.Context, tx *sql.Tx, data 
 		helpers.PanicIfError(err)
 	}()
 
-	return accountWallet
+	return accountWallet, nil
 }
 
 func (w *WalletRepositoryImpl) Disabled(ctx context.Context, tx *sql.Tx, data web.DisabledRequest) domain.Wallet {

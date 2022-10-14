@@ -69,7 +69,9 @@ func (w *WallerServiceImpl) Deposit(ctx context.Context, request web.DepositRequ
 
 	tx, err := w.DB.Begin()
 	helpers.PanicIfError(err)
-	deposit := w.WalletRepository.Deposit(ctx, tx, request)
+
+	deposit, err := w.WalletRepository.Deposit(ctx, tx, request)
+	helpers.PanicIfError(err)
 	//defer helpers.CommitOrRollback(tx)
 
 	//todo add to wallet with goroutine
@@ -100,8 +102,8 @@ func (w *WallerServiceImpl) Withdrawal(ctx context.Context, request web.Withdraw
 	helpers.PanicIfError(err)
 	defer helpers.CommitOrRollback(tx)
 
-	deposit := w.WalletRepository.Withdrawal(ctx, tx, request)
-
+	deposit, err := w.WalletRepository.Withdrawal(ctx, tx, request)
+	helpers.PanicIfError(err)
 	//todo reduce to wallet with goroutine
 
 	return helpers.ToWithdrawalResponse(deposit)

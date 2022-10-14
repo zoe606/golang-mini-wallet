@@ -91,7 +91,9 @@ func internalServerError(w http.ResponseWriter, r *http.Request, err interface{}
 	webResponse := web.Response{
 		Code:   http.StatusInternalServerError,
 		Status: "internal server error",
-		Data:   err,
+		Data: ErrWarper{
+			Error: err,
+		},
 	}
 	helpers.WriteToResponseBody(w, webResponse)
 }
